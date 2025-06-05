@@ -14,6 +14,7 @@ import {findAllPostsInQueryData as findAllPostsInFeedQueryData} from '#/state/qu
 import {findAllPostsInQueryData as findAllPostsInQuoteQueryData} from '#/state/queries/post-quotes'
 import {findAllPostsInQueryData as findAllPostsInThreadQueryData} from '#/state/queries/post-thread'
 import {findAllPostsInQueryData as findAllPostsInSearchQueryData} from '#/state/queries/search-posts'
+import {useProfileShadow} from './profile-shadow'
 import {castAsShadow, type Shadow} from './types'
 export type {Shadow} from './types'
 
@@ -33,6 +34,31 @@ const shadows: WeakMap<
   Partial<PostShadow>
 > = new WeakMap()
 
+export function isAuthorMuted(
+  authorShadow: ReturnType<typeof useProfileShadow>,
+): boolean {
+  if (authorShadow.viewer && typeof authorShadow.viewer.muted !== 'undefined') {
+    if (authorShadow.viewer.muted) {
+      return true
+    }
+  }
+  return false
+}
+
+export function isAuthorBlocked(
+  authorShadow: ReturnType<typeof useProfileShadow>,
+): boolean {
+  if (
+    authorShadow.viewer &&
+    typeof authorShadow.viewer.blocking !== 'undefined'
+  ) {
+    if (authorShadow.viewer.blocking) {
+      return true
+    }
+  }
+  return false
+}
+
 export function usePostShadow(
   post: AppBskyFeedDefs.PostView,
 ): Shadow<AppBskyFeedDefs.PostView> | typeof POST_TOMBSTONE {
@@ -42,6 +68,10 @@ export function usePostShadow(
     setPrevPost(post)
     setShadow(shadows.get(post))
   }
+
+  const authorShadow = useProfileShadow(post.author)
+  const wasMuted = isAuthorMuted(authorShadow)
+  const wasBlocked = isAuthorBlocked(authorShadow)
 
   useEffect(() => {
     function onUpdate() {
@@ -54,15 +84,18 @@ export function usePostShadow(
   }, [post, setShadow])
 
   return useMemo(() => {
+    if (wasMuted || wasBlocked) {
+      return POST_TOMBSTONE
+    }
     if (shadow) {
       return mergeShadow(post, shadow)
     } else {
       return castAsShadow(post)
     }
-  }, [post, shadow])
+  }, [post, shadow, wasMuted, wasBlocked])
 }
 
-function mergeShadow(
+export function mergeShadow(
   post: AppBskyFeedDefs.PostView,
   shadow: Partial<PostShadow>,
 ): Shadow<AppBskyFeedDefs.PostView> | typeof POST_TOMBSTONE {

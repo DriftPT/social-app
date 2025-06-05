@@ -120,6 +120,7 @@ let PostMenuItems = ({
   const navigation = useNavigation<NavigationProp>()
   const {mutedWordsDialogControl} = useGlobalDialogsControlContext()
   const blockPromptControl = useDialogControl()
+  const mutePromptControl = useDialogControl()
   const reportDialogControl = useReportDialogControl()
   const deletePromptControl = useDialogControl()
   const hidePromptControl = useDialogControl()
@@ -609,7 +610,7 @@ let PostMenuItems = ({
                         ? _(msg`Unmute account`)
                         : _(msg`Mute account`)
                     }
-                    onPress={onMuteAuthor}>
+                    onPress={() => mutePromptControl.open()}>
                     <Menu.ItemText>
                       {postAuthor.viewer?.muted
                         ? _(msg`Unmute account`)
@@ -740,6 +741,29 @@ let PostMenuItems = ({
         )}
         onConfirm={onBlockAuthor}
         confirmButtonCta={_(msg`Block`)}
+        confirmButtonColor="negative"
+      />
+
+      <Prompt.Basic
+        control={mutePromptControl}
+        title={
+          postAuthor.viewer?.muted
+            ? _(msg`Unmute account?`)
+            : _(msg`Mute account?`)
+        }
+        description={
+          postAuthor.viewer?.muted
+            ? _(
+                msg`Unmuted accounts have their posts restored to your feed and notifications.`,
+              )
+            : _(
+                msg`Muted accounts have their posts removed from your feed and from your notifications. Mutes are completely private.`,
+              )
+        }
+        onConfirm={onMuteAuthor}
+        confirmButtonCta={
+          postAuthor.viewer?.muted ? _(msg`Unmute`) : _(msg`Mute`)
+        }
         confirmButtonColor="negative"
       />
     </>
